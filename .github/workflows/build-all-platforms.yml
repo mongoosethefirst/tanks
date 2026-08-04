@@ -1,0 +1,105 @@
+name: Build Tanks for Windows, macOS, and Linux
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame-ce pressing
+
+      - name: Build Windows app
+        shell: pwsh
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name Tanks `
+            --add-data "tanks;tanks" `
+            --hidden-import new `
+            --hidden-import join `
+            --hidden-import play_host `
+            --hidden-import play_client `
+            --hidden-import server `
+            --hidden-import network `
+            --hidden-import game_client_base `
+            --hidden-import paths `
+            home_page.py
+          Compress-Archive -Path dist/Tanks/* -DestinationPath Tanks-Windows.zip -Force
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Tanks-Windows
+          path: Tanks-Windows.zip
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame-ce pressing
+
+      - name: Build macOS app
+        run: |
+          python -m PyInstaller --noconfirm --clean --windowed --onedir --name Tanks \
+            --add-data "tanks:tanks" \
+            --hidden-import new \
+            --hidden-import join \
+            --hidden-import play_host \
+            --hidden-import play_client \
+            --hidden-import server \
+            --hidden-import network \
+            --hidden-import game_client_base \
+            --hidden-import paths \
+            home_page.py
+          ditto -c -k --sequesterRsrc --keepParent dist/Tanks.app Tanks-macOS.zip
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Tanks-macOS
+          path: Tanks-macOS.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y zip
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip pyinstaller pygame-ce pressing
+
+      - name: Build Linux app
+        run: |
+          python -m PyInstaller --noconfirm --clean --onedir --name Tanks \
+            --add-data "tanks:tanks" \
+            --hidden-import new \
+            --hidden-import join \
+            --hidden-import play_host \
+            --hidden-import play_client \
+            --hidden-import server \
+            --hidden-import network \
+            --hidden-import game_client_base \
+            --hidden-import paths \
+            home_page.py
+          cd dist
+          zip -r ../Tanks-Linux.zip Tanks
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: Tanks-Linux
+          path: Tanks-Linux.zip
